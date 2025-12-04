@@ -86,8 +86,4 @@ Run the CLI application:
 - The app uses ORM and Alembic migrations to manage the database  
 - Many-to-many relationships are handled through MoodExercise (Mood ↔ Exercise) and Log (User ↔ Exercise)  
 
----
 
-## License
-
-This project is for educational purposes and learning SQLAlchemy, CLI apps, and Python OOP.
