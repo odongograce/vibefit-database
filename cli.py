@@ -9,7 +9,7 @@ engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(bind=engine)
 session = SessionLocal()
 
-
+#registering user
 def register_user():
     print("\n=== REGISTER ===")
     first_name = input("First Name: ")
@@ -26,6 +26,7 @@ def register_user():
     session.commit()
     print("Registered successfully! You can now login.")
 
+#logging user
 def login_user():
     print("\n=== LOGIN ===")
     email = input("Email: ")
@@ -39,7 +40,7 @@ def login_user():
 
     print("Invalid email or password.")
 
-
+#selecting a mood
 def select_mood(user):
     print("\n=== SELECT MOOD ===")
     moods = session.query(Mood).all()
@@ -66,13 +67,43 @@ def select_mood(user):
     print(f"Recommended exercise: {exercise.name} ({exercise.type})")
     print(f"Intensity: {me.intensity}, Food: {me.food}")
 
-    # Log the exercise
+    # Loging the exercise
     log = Log(user_id=user.id, exercise_id=exercise.id, timestamp=datetime.utcnow())
     session.add(log)
     session.commit()
     print("Workout logged!")
 
+# deleting a log
+def delete_log(user):
+    logs = session.query(Log).filter_by(user_id=user.id).all()
+    if not logs:
+        print("No workout history to delete.")
+        return
 
+    print(f"\nWorkout history for {user.first_name} (Select one to delete):")
+    counter = 1
+    log_map = {}
+    for log in logs:
+        ex = session.query(Exercise).filter_by(id=log.exercise_id).first()
+        print(f"{counter}. {ex.name} at {log.timestamp}")
+        log_map[str(counter)] = log
+        counter += 1
+
+    choice = input("Enter the number of the log to delete, or 'c' to cancel: ")
+
+    if choice.lower() == 'c':
+        return
+
+    if choice not in log_map:
+        print("Invalid choice.")
+        return
+
+    log_to_delete = log_map[choice]
+    session.delete(log_to_delete)
+    session.commit()
+    print("Workout log deleted successfully!")
+
+#user's workout history
 def view_workout_history(user):
     logs = session.query(Log).filter_by(user_id=user.id).all()
     if not logs:
@@ -86,7 +117,38 @@ def view_workout_history(user):
         print(f"{counter}. {ex.name} at {log.timestamp}")
         counter += 1
 
+#all workout history
+def view_all_history():
+    print("\n=== GLOBAL WORKOUT HISTORY ===")
 
+    # Getting the search term
+    search_query = input("Enter user's name , email or exercise name to search, or leave blank to show all logs: ").strip()
+
+    # the query
+    logs_query = session.query(Log).join(User).join(Exercise).order_by(Log.timestamp.desc())
+
+    if search_query:
+       
+        logs_query = logs_query.filter(
+            (User.first_name.ilike(f"%{search_query}%")) | 
+            (User.last_name.ilike(f"%{search_query}%")) |
+            (User.email.ilike(f"%{search_query}%")) |
+            (Exercise.name.ilike(f"%{search_query}%"))
+        )
+
+    logs = logs_query.all()
+
+    if not logs:
+        print("No workout history found for this search criteria.")
+        return
+
+    print("\n--- History Results ---")
+    for log in logs:
+        u = session.query(User).filter_by(id=log.user_id).first()
+        ex = session.query(Exercise).filter_by(id=log.exercise_id).first()
+        print(f"[{log.timestamp.strftime('%Y-%m-%d %H:%M')}] {u.first_name} {u.last_name} ({u.email}) did: {ex.name}")
+
+#updating user info
 def update_user_info(user):
     new_first = input("New First Name: ")
     new_last = input("New Last Name: ")
@@ -97,44 +159,61 @@ def update_user_info(user):
     session.commit()
     print("Name updated!")
 
+#user menu
+def logout(user):
+    print("Logging out...")
 
 def user_menu(user):
+    user_menu_options = {
+        "1": select_mood,
+        "2": view_workout_history,
+        "3": update_user_info,
+        "4": delete_log,
+        "5": logout
+    }
+
     while True:
         print("\n=== USER MENU ===")
         print("1. Select Mood & Workout")
         print("2. View Workout History")
         print("3. Update First/Last Name")
-        print("4. Logout")
+        print("4. Delete a Workout Log")
+        print("5. Logout")
         choice = input("Choose option: ")
 
-        if choice == "1":
-            select_mood(user)
-        elif choice == "2":
-            view_workout_history(user)
-        elif choice == "3":
-            update_user_info(user)
-        elif choice == "4":
-            print("Logging out...")
-            break
+        func = user_menu_options.get(choice)
+        if func:
+            func(user)
+            if choice == "5":
+                break
         else:
             print("Invalid choice.")
 
+# system menu
+def exit_program():
+    print("bye")
 
 def main():
+    main_menu_options = {
+        "1": register_user,
+        "2": login_user,
+        "3": view_all_history,
+        "4": exit_program
+    }
+
     while True:
         print("\n=== VIBEFIT CLI ===")
         print("1. Register")
         print("2. Login")
-        print("3. Exit")
+        print("3. View All Logs (Search)")
+        print("4. Exit")
         choice = input("Choose option: ")
 
-        if choice == "1":
-            register_user()
-        elif choice == "2":
-            login_user()
-        elif choice == "3":
-            print("Goodbye!")
-            break
+        func = main_menu_options.get(choice)
+        if func:
+            func()
+            if choice == "4":  # Exiting hte whole program
+                break
         else:
             print("Invalid choice.")
 

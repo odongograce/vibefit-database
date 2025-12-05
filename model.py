@@ -16,15 +16,16 @@ class User(Base):
 
     logs = relationship("Log", back_populates="user")
 
-
-class Mood(Base):
-    __tablename__ = "moods"
+class Log(Base):
+    __tablename__ = "logs"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(50), unique=True, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
 
-    mood_exercises = relationship("MoodExercise", back_populates="mood")
-
+    user = relationship("User", back_populates="logs")
+    exercise = relationship("Exercise", back_populates="logs")
 
 class Exercise(Base):
     __tablename__ = "exercises"
@@ -51,14 +52,11 @@ class MoodExercise(Base):
     mood = relationship("Mood", back_populates="mood_exercises")
     exercise = relationship("Exercise", back_populates="mood_exercises")
 
-
-class Log(Base):
-    __tablename__ = "logs"
+class Mood(Base):
+    __tablename__ = "moods"
 
     id = Column(Integer, primary_key=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    name = Column(String(50), unique=True, nullable=False)
 
-    user = relationship("User", back_populates="logs")
-    exercise = relationship("Exercise", back_populates="logs")
+    mood_exercises = relationship("MoodExercise", back_populates="mood")
+
